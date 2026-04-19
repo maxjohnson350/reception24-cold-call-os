@@ -1,0 +1,1009 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reception 24 — Cold Call OS</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap');
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+
+:root {
+  --bg:       #080a0f;
+  --bg1:      #0d1018;
+  --bg2:      #111420;
+  --bg3:      #181c2a;
+  --bg4:      #1e2333;
+  --line:     rgba(255,255,255,0.06);
+  --line2:    rgba(255,255,255,0.1);
+  --line3:    rgba(255,255,255,0.16);
+  --text:     #e8eaf0;
+  --text2:    #7e839e;
+  --text3:    #454a63;
+  --g:        #3dffa0;
+  --g-dim:    rgba(61,255,160,0.1);
+  --g-border: rgba(61,255,160,0.25);
+  --b:        #5b9cf6;
+  --b-dim:    rgba(91,156,246,0.1);
+  --b-border: rgba(91,156,246,0.25);
+  --o:        #ffab40;
+  --o-dim:    rgba(255,171,64,0.1);
+  --o-border: rgba(255,171,64,0.25);
+  --r:        #ff6b6b;
+  --r-dim:    rgba(255,107,107,0.08);
+  --r-border: rgba(255,107,107,0.2);
+  --p:        #c084fc;
+  --p-dim:    rgba(192,132,252,0.08);
+  --p-border: rgba(192,132,252,0.2);
+  --font:     'DM Sans', sans-serif;
+  --head:     'Syne', sans-serif;
+  --mono:     'DM Mono', monospace;
+  --r4:       4px;
+  --r8:       8px;
+  --r12:      12px;
+}
+
+html { background: var(--bg); color: var(--text); font-family: var(--font); font-size: 13px; line-height: 1.6; }
+body { min-height: 100vh; }
+
+/* GRAIN OVERLAY */
+body::before {
+  content:''; position:fixed; inset:0; pointer-events:none; z-index:999;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.035'/%3E%3C/svg%3E");
+  opacity: 0.4;
+}
+
+/* LAYOUT */
+.os-shell { display: grid; grid-template-columns: 220px 1fr; grid-template-rows: 52px 1fr; min-height: 100vh; }
+
+/* TOP BAR */
+.topbar {
+  grid-column: 1 / -1;
+  display: flex; align-items: center; gap: 16px;
+  padding: 0 20px;
+  background: var(--bg1);
+  border-bottom: 1px solid var(--line);
+  position: sticky; top: 0; z-index: 100;
+}
+.logo-mark {
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--head); font-size: 13px; font-weight: 700;
+  letter-spacing: 0.04em; color: var(--text);
+}
+.logo-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--g); box-shadow: 0 0 8px var(--g); animation: pulse-dot 2s ease-in-out infinite; }
+@keyframes pulse-dot { 0%,100%{opacity:1;box-shadow:0 0 8px var(--g)} 50%{opacity:0.6;box-shadow:0 0 16px var(--g)} }
+
+.top-label { font-family: var(--mono); font-size: 10px; color: var(--text3); letter-spacing: 0.08em; text-transform: uppercase; padding: 3px 8px; border: 1px solid var(--line2); border-radius: 20px; }
+.top-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+.status-node { display: flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: 10px; color: var(--text3); letter-spacing: 0.04em; }
+.status-node .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--text3); transition: all 0.3s; }
+.status-node.active .dot { background: var(--g); box-shadow: 0 0 6px var(--g); }
+.status-node.scanning .dot { background: var(--b); box-shadow: 0 0 6px var(--b); animation: pulse-dot 0.8s ease-in-out infinite; }
+
+/* SIDEBAR */
+.sidebar {
+  background: var(--bg1);
+  border-right: 1px solid var(--line);
+  padding: 16px 0;
+  display: flex; flex-direction: column; gap: 4px;
+  overflow-y: auto;
+}
+.nav-section { padding: 10px 16px 4px; font-family: var(--mono); font-size: 9px; color: var(--text3); letter-spacing: 0.1em; text-transform: uppercase; }
+.nav-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 16px;
+  cursor: pointer;
+  font-size: 12px; color: var(--text2);
+  transition: all 0.15s;
+  border-left: 2px solid transparent;
+  user-select: none;
+}
+.nav-item:hover { color: var(--text); background: var(--bg2); }
+.nav-item.active { color: var(--g); border-left-color: var(--g); background: var(--g-dim); }
+.nav-item svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 1.8; flex-shrink: 0; }
+.nav-badge { margin-left: auto; font-family: var(--mono); font-size: 9px; padding: 1px 5px; border-radius: 10px; background: var(--bg3); color: var(--text3); }
+.nav-item.active .nav-badge { background: var(--g-dim); color: var(--g); }
+
+.sidebar-footer { margin-top: auto; padding: 12px 16px; border-top: 1px solid var(--line); }
+.version-tag { font-family: var(--mono); font-size: 9px; color: var(--text3); letter-spacing: 0.05em; }
+
+/* MAIN CONTENT */
+.main { background: var(--bg); overflow-y: auto; position: relative; }
+
+.panel { display: none; padding: 24px; animation: fadeIn 0.2s ease; }
+.panel.active { display: block; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:translateY(0)} }
+
+/* PANEL HEADER */
+.panel-head { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px; }
+.panel-title { font-family: var(--head); font-size: 20px; font-weight: 700; color: var(--text); letter-spacing: -0.02em; line-height: 1.2; }
+.panel-sub { font-size: 12px; color: var(--text3); margin-top: 3px; }
+
+/* CARDS / SECTIONS */
+.card {
+  background: var(--bg2);
+  border: 1px solid var(--line);
+  border-radius: var(--r12);
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+.card-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 14px;
+  background: var(--bg3);
+  border-bottom: 1px solid var(--line);
+}
+.card-label {
+  display: flex; align-items: center; gap: 6px;
+  font-family: var(--mono); font-size: 10px; font-weight: 500;
+  letter-spacing: 0.07em; text-transform: uppercase;
+}
+.card-label .tag-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+.card-label.green { color: var(--g); }
+.card-label.blue  { color: var(--b); }
+.card-label.amber { color: var(--o); }
+.card-label.red   { color: var(--r); }
+.card-label.purple{ color: var(--p); }
+
+.card-body { padding: 12px 14px; }
+
+/* INPUTS */
+textarea, input[type=text] {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--r8);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 12.5px;
+  line-height: 1.65;
+  padding: 9px 11px;
+  resize: vertical;
+  transition: border-color 0.15s;
+}
+textarea { min-height: 72px; }
+input[type=text] { resize: none; }
+textarea:focus, input[type=text]:focus { outline: none; border-color: var(--line3); }
+textarea::placeholder, input[type=text]::placeholder { color: var(--text3); font-size: 11.5px; }
+textarea.url-active { border-color: var(--b-border); }
+
+/* BTN ROW */
+.btn-row { display: flex; gap: 8px; align-items: center; margin-top: 10px; flex-wrap: wrap; }
+.btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 7px 16px; font-size: 12px; font-weight: 500;
+  font-family: var(--font); border-radius: var(--r8);
+  cursor: pointer; transition: all 0.15s; border: none;
+}
+.btn svg { width: 11px; height: 11px; stroke: currentColor; fill: none; stroke-width: 2.2; flex-shrink: 0; }
+.btn-green { background: var(--g); color: #040d08; }
+.btn-green:hover { opacity: 0.88; }
+.btn-green:active { transform: scale(0.97); }
+.btn-green:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
+.btn-ghost { background: transparent; color: var(--text2); border: 1px solid var(--line); }
+.btn-ghost:hover { color: var(--text); border-color: var(--line2); }
+.btn-blue { background: var(--b-dim); color: var(--b); border: 1px solid var(--b-border); }
+.btn-blue:hover { background: rgba(91,156,246,0.16); }
+.btn-amber { background: var(--o-dim); color: var(--o); border: 1px solid var(--o-border); }
+.btn-amber:hover { background: rgba(255,171,64,0.16); }
+.btn-copy { background: transparent; color: var(--text3); border: 1px solid var(--line); font-family: var(--mono); font-size: 10px; padding: 3px 10px; border-radius: var(--r4); cursor: pointer; transition: all 0.15s; }
+.btn-copy:hover { color: var(--text); border-color: var(--line2); }
+.hint { font-size: 11px; color: var(--text3); margin-left: auto; font-family: var(--mono); }
+
+/* BADGES */
+.badge { display: inline-flex; align-items: center; gap: 5px; padding: 4px 9px; border-radius: 20px; font-family: var(--mono); font-size: 10px; letter-spacing: 0.03em; }
+.badge-blue { color: var(--b); border: 1px solid var(--b-border); background: var(--b-dim); }
+.badge-green { color: var(--g); border: 1px solid var(--g-border); background: var(--g-dim); }
+.badge-amber { color: var(--o); border: 1px solid var(--o-border); background: var(--o-dim); }
+.badge svg { width: 9px; height: 9px; stroke: currentColor; fill: none; stroke-width: 2.5; }
+
+/* URL SCAN STATES */
+.url-scan-row { margin-top: 7px; }
+.url-detected { display: none; }
+.url-detected.on { display: flex; align-items: center; gap: 8px; }
+.url-scanning { display: none; }
+.url-scanning.on { display: flex; align-items: center; gap: 7px; font-family: var(--mono); font-size: 10.5px; color: var(--o); }
+.scan-blink { width: 5px; height: 5px; border-radius: 50%; background: var(--o); animation: pp 0.8s ease-in-out infinite; flex-shrink: 0; }
+
+.enriched-box { display: none; margin-top: 8px; padding: 10px 12px; background: var(--bg3); border: 1px solid var(--g-border); border-radius: var(--r8); }
+.enriched-box.on { display: block; }
+.enriched-box-head { font-family: var(--mono); font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--g); margin-bottom: 5px; }
+.enriched-box p { font-size: 12px; color: var(--text2); line-height: 1.65; }
+
+/* STREAM BLOCK */
+.stream-out {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--r8);
+  padding: 13px;
+  font-size: 12.5px; line-height: 1.8;
+  color: var(--text2);
+  white-space: pre-wrap;
+  min-height: 56px;
+}
+
+/* SCRIPT SECTIONS */
+.script-sections { display: flex; flex-direction: column; gap: 10px; }
+.ss-card { border: 1px solid var(--line); border-radius: var(--r12); overflow: hidden; }
+.ss-head { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; border-bottom: 1px solid var(--line); background: var(--bg2); }
+.ss-label { display: flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: 9.5px; font-weight: 500; letter-spacing: 0.07em; text-transform: uppercase; }
+.ss-label .sdot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+.ss-label.amber { color: var(--o); }
+.ss-label.red   { color: var(--r); }
+.ss-label.blue  { color: var(--b); }
+.ss-label.green { color: var(--g); }
+.ss-body { padding: 11px 13px; font-size: 12.5px; line-height: 1.8; color: var(--text); white-space: pre-wrap; background: var(--bg); }
+
+/* PROSPECT BAR */
+.prospect-bar { display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: var(--bg3); border-bottom: 1px solid var(--line); }
+.avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--b-dim); border: 1px solid var(--b-border); display: flex; align-items: center; justify-content: center; font-family: var(--head); font-size: 12px; font-weight: 700; color: var(--b); flex-shrink: 0; }
+.p-name { font-size: 13px; font-weight: 500; color: var(--text); font-family: var(--head); }
+.p-co   { font-size: 11px; color: var(--text2); }
+
+/* OBJECTION ENGINE */
+.obj-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 4px; }
+.obj-cell { background: var(--bg); border: 1px solid var(--line); border-radius: var(--r8); padding: 11px 12px; }
+.obj-cell-head { font-family: var(--mono); font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 7px; display: flex; align-items: center; gap: 5px; }
+.obj-cell-head .cdot { width: 4px; height: 4px; border-radius: 50%; background: currentColor; }
+.obj-cell-head.green { color: var(--g); }
+.obj-cell-head.blue  { color: var(--b); }
+.obj-cell-head.amber { color: var(--o); }
+.obj-cell p { font-size: 12px; line-height: 1.7; color: var(--text); }
+.obj-empty { font-size: 11.5px; color: var(--text3); font-style: italic; }
+
+/* EMPTY STATES */
+.empty-state { padding: 28px 0; text-align: center; }
+.empty-icon { width: 32px; height: 32px; margin: 0 auto 10px; opacity: 0.12; }
+.empty-icon svg { width: 32px; height: 32px; stroke: var(--text); fill: none; stroke-width: 1; }
+.empty-t { font-size: 13px; font-weight: 500; color: var(--text2); margin-bottom: 3px; }
+.empty-s { font-size: 11px; color: var(--text3); }
+
+/* CALL LOG */
+.log-table { width: 100%; border-collapse: collapse; }
+.log-table th { font-family: var(--mono); font-size: 9px; letter-spacing: 0.07em; text-transform: uppercase; color: var(--text3); text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--line); }
+.log-table td { padding: 8px 10px; font-size: 12px; border-bottom: 1px solid var(--line); color: var(--text2); vertical-align: top; }
+.log-table tr:last-child td { border-bottom: none; }
+.log-table tr:hover td { background: var(--bg2); }
+.log-outcome { font-family: var(--mono); font-size: 10px; padding: 2px 7px; border-radius: 10px; }
+.outcome-booked  { background: var(--g-dim); color: var(--g); border: 1px solid var(--g-border); }
+.outcome-followup{ background: var(--b-dim); color: var(--b); border: 1px solid var(--b-border); }
+.outcome-no      { background: var(--r-dim); color: var(--r); border: 1px solid var(--r-border); }
+
+/* PULSE DOTS */
+.pulse { display: inline-flex; gap: 3px; align-items: center; }
+.pd { width: 4px; height: 4px; border-radius: 50%; background: var(--g); animation: pp 1.2s ease-in-out infinite; opacity: 0.3; }
+.pd:nth-child(2){animation-delay:.2s}.pd:nth-child(3){animation-delay:.4s}
+@keyframes pp { 0%,80%,100%{opacity:.2} 40%{opacity:1} }
+
+/* DIVIDER */
+.divr { height: 1px; background: var(--line); margin: 16px 0; }
+
+
+/* RESPONSIVE */
+@media(max-width:768px){
+  .os-shell{grid-template-columns:1fr;grid-template-rows:52px auto 1fr;}
+  .sidebar{grid-row:2;display:flex;flex-direction:row;overflow-x:auto;padding:8px;border-right:none;border-bottom:1px solid var(--line);}
+  .nav-section{display:none;}
+  .nav-item{padding:6px 10px;white-space:nowrap;border-left:none;border-bottom:2px solid transparent;}
+  .nav-item.active{border-left:none;border-bottom-color:var(--g);}
+  .obj-grid{grid-template-columns:1fr;}
+  .main{grid-row:3;}
+}
+</style>
+</head>
+<body>
+<div class="os-shell">
+
+<!-- TOP BAR -->
+<header class="topbar">
+  <div class="logo-mark">
+    <div class="logo-dot"></div>
+    RECEPTION 24
+  </div>
+  <span class="top-label">COLD CALL OS</span>
+  <div class="top-right">
+    <div class="status-node" id="status-node">
+      <div class="dot"></div>
+      <span id="status-txt">standby</span>
+    </div>
+  </div>
+</header>
+
+<!-- SIDEBAR -->
+<nav class="sidebar">
+  <div class="nav-section">Modules</div>
+  <div class="nav-item active" onclick="showPanel('script')" id="nav-script">
+    <svg viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+    Script Generator
+  </div>
+  <div class="nav-item" onclick="showPanel('objections')" id="nav-objections">
+    <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+    Objection Engine
+    <span class="nav-badge" id="obj-badge">NEW</span>
+  </div>
+  <div class="nav-item" onclick="showPanel('log')" id="nav-log">
+    <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+    Call Log
+    <span class="nav-badge" id="log-count">0</span>
+  </div>
+
+  <div class="nav-section" style="margin-top:8px;">System</div>
+  <div class="nav-item" onclick="showPanel('settings')" id="nav-settings">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14"/></svg>
+    Context Settings
+  </div>
+
+  <div class="sidebar-footer">
+    <div class="version-tag">v3.1 · reception24 OS</div>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<main class="main">
+
+  <!-- ═══ SCRIPT GENERATOR ═══ -->
+  <div class="panel active" id="panel-script">
+    <div class="panel-head">
+      <div>
+        <div class="panel-title">Script Generator</div>
+        <div class="panel-sub">Paste prospect info or URL — get a live call script in seconds</div>
+      </div>
+    </div>
+
+    <!-- Input card -->
+    <div class="card">
+      <div class="card-head">
+        <span class="card-label green"><span class="tag-dot"></span>Prospect Input</span>
+      </div>
+      <div class="card-body">
+        <textarea id="persona-in"
+          placeholder="Paste name, company, LinkedIn snippet — or drop a URL to auto-scan the prospect..."
+          oninput="onInputChange(this)"></textarea>
+
+        <!-- URL detected -->
+        <div class="url-scan-row">
+          <div class="url-detected" id="url-detected">
+            <span class="badge badge-blue">
+              <svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+              <span id="url-domain-txt">url detected</span>
+            </span>
+            <button class="btn-copy" onclick="clearUrl()" style="font-size:9px;padding:2px 7px;">✕ remove</button>
+          </div>
+          <div class="url-scanning" id="url-scanning">
+            <span class="scan-blink"></span>
+            <span id="scan-txt">Scanning...</span>
+          </div>
+        </div>
+
+        <div class="enriched-box" id="enriched-box">
+          <div class="enriched-box-head">✦ URL scan complete — enriched context ready</div>
+          <p id="enriched-content"></p>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-green" id="gen-btn" onclick="generate()">
+            <svg viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            Generate Script
+          </button>
+          <button class="btn btn-ghost" onclick="resetScript()">Clear</button>
+          <span class="hint" id="hint-txt">Paste info or URL above</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Output -->
+    <div id="script-output">
+      <div class="empty-state">
+        <div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></div>
+        <div class="empty-t">No script loaded</div>
+        <div class="empty-s">Paste prospect details above and hit Generate</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ OBJECTION ENGINE ═══ -->
+  <div class="panel" id="panel-objections">
+    <div class="panel-head">
+      <div>
+        <div class="panel-title">Objection Engine</div>
+        <div class="panel-sub">Type any live objection — get an instant rebuttal, question & value prop</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <span class="card-label red"><span class="tag-dot"></span>Live Objection Input</span>
+      </div>
+      <div class="card-body">
+        <input type="text" id="obj-input"
+          placeholder="e.g. We already have a receptionist / Not interested / Send me an email / Too expensive..."
+          onkeydown="if(event.key==='Enter')handleObjection()">
+        <div class="btn-row">
+          <button class="btn btn-amber" id="obj-btn" onclick="handleObjection()">
+            <svg viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+            Fire Response
+          </button>
+          <button class="btn btn-ghost" onclick="clearObjection()">Clear</button>
+          <span class="hint" id="obj-hint">Enter the objection above</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Objection output -->
+    <div id="obj-output">
+      <div class="empty-state">
+        <div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></div>
+        <div class="empty-t">No objection loaded</div>
+        <div class="empty-s">Type an objection and hit Fire Response</div>
+      </div>
+    </div>
+
+    <!-- Common objections quick-fire -->
+    <div class="card" style="margin-top:16px;">
+      <div class="card-head">
+        <span class="card-label purple"><span class="tag-dot"></span>Quick-Fire Common Objections</span>
+      </div>
+      <div class="card-body">
+        <div style="display:flex;flex-wrap:wrap;gap:6px;">
+          <button class="btn btn-ghost" style="font-size:11px;" onclick="fireQuick('We already have a receptionist')">Already have reception</button>
+          <button class="btn btn-ghost" style="font-size:11px;" onclick="fireQuick('We\'re not interested')">Not interested</button>
+          <button class="btn btn-ghost" style="font-size:11px;" onclick="fireQuick('Just send me an email')">Send me an email</button>
+          <button class="btn btn-ghost" style="font-size:11px;" onclick="fireQuick('It\'s too expensive')">Too expensive</button>
+          <button class="btn btn-ghost" style="font-size:11px;" onclick="fireQuick('We don\'t miss many calls')">Don't miss calls</button>
+          <button class="btn btn-ghost" style="font-size:11px;" onclick="fireQuick('I need to speak to my partner/director')">Need to check internally</button>
+          <button class="btn btn-ghost" style="font-size:11px;" onclick="fireQuick('We\'re too busy right now')">Too busy right now</button>
+          <button class="btn btn-ghost" style="font-size:11px;" onclick="fireQuick('We already use an answering service')">Already use answering service</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ CALL LOG ═══ -->
+  <div class="panel" id="panel-log">
+    <div class="panel-head">
+      <div>
+        <div class="panel-title">Call Log</div>
+        <div class="panel-sub">Track outcomes across your session</div>
+      </div>
+      <button class="btn btn-ghost" style="font-size:11px;margin-top:4px;" onclick="clearLog()">Clear log</button>
+    </div>
+
+    <div class="card">
+      <div id="log-body">
+        <div class="empty-state">
+          <div class="empty-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></div>
+          <div class="empty-t">No calls logged yet</div>
+          <div class="empty-s">Log a call outcome after each script generation</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ SETTINGS ═══ -->
+  <div class="panel" id="panel-settings">
+    <div class="panel-head">
+      <div>
+        <div class="panel-title">Context Settings</div>
+        <div class="panel-sub">Tune the AI to your calling style and market</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><span class="card-label green"><span class="tag-dot"></span>Product Context</span></div>
+      <div class="card-body">
+        <label style="font-size:11px;color:var(--text2);display:block;margin-bottom:5px;">Product / Service description</label>
+        <textarea id="product-ctx" style="min-height:60px;" placeholder="Reception 24 is an AI receptionist that handles calls 24/7 for small/medium local businesses — never missing a call, booking appointments, and routing enquiries automatically."></textarea>
+        <label style="font-size:11px;color:var(--text2);display:block;margin-top:10px;margin-bottom:5px;">Your name / company</label>
+        <input type="text" id="caller-name" placeholder="e.g. Jamie — Reception 24 Sales">
+        <label style="font-size:11px;color:var(--text2);display:block;margin-top:10px;margin-bottom:5px;">Tone preference</label>
+        <select id="tone-select" style="width:100%;background:var(--bg);border:1px solid var(--line);border-radius:var(--r8);color:var(--text);padding:8px 10px;font-size:12px;font-family:var(--font);">
+          <option value="uk-b2b">UK/European B2B — conversational, consultative</option>
+          <option value="direct">Direct & confident — no fluff</option>
+          <option value="warm">Warm & empathetic — relationship-led</option>
+        </select>
+        <div class="btn-row" style="margin-top:12px;">
+          <button class="btn btn-green" onclick="saveSettings()">
+            <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+            Save Settings
+          </button>
+          <span class="hint" id="settings-hint">Settings saved per session</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════
+var state = {
+  storedScript: '',
+  detectedUrl: '',
+  enrichedContext: '',
+  isScanning: false,
+  scanTimer: null,
+  callLog: [],
+  settings: {
+    product: 'Reception 24 is an AI receptionist that handles calls 24/7 for small/medium local businesses — never missing a call, booking appointments, and routing enquiries automatically.',
+    caller: '',
+    tone: 'uk-b2b'
+  }
+};
+
+// ══════════════════════════════════════════════════
+// NAV
+// ══════════════════════════════════════════════════
+function showPanel(id) {
+  document.querySelectorAll('.panel').forEach(function(p){ p.classList.remove('active'); });
+  document.querySelectorAll('.nav-item').forEach(function(n){ n.classList.remove('active'); });
+  document.getElementById('panel-' + id).classList.add('active');
+  document.getElementById('nav-' + id).classList.add('active');
+}
+
+// ══════════════════════════════════════════════════
+// STATUS
+// ══════════════════════════════════════════════════
+function setStatus(s, txt) {
+  var node = document.getElementById('status-node');
+  node.className = 'status-node';
+  if (s === 'active') node.classList.add('active');
+  if (s === 'scanning') node.classList.add('scanning');
+  document.getElementById('status-txt').textContent = txt;
+}
+
+// ══════════════════════════════════════════════════
+// URL DETECTION & SCANNING
+// ══════════════════════════════════════════════════
+function extractUrl(text) {
+  var m = text.match(/https?:\/\/[^\s]+/);
+  return m ? m[0] : null;
+}
+
+function onInputChange(el) {
+  var url = extractUrl(el.value);
+  if (url && url !== state.detectedUrl) {
+    state.detectedUrl = url;
+    state.enrichedContext = '';
+    var domain = url.replace(/^https?:\/\//,'').split('/')[0];
+    var disp = domain.length > 38 ? domain.slice(0,38)+'…' : domain;
+    document.getElementById('url-domain-txt').textContent = disp;
+    document.getElementById('url-detected').classList.add('on');
+    document.getElementById('enriched-box').classList.remove('on');
+    el.classList.add('url-active');
+    clearTimeout(state.scanTimer);
+    state.scanTimer = setTimeout(function(){ scanUrl(url); }, 700);
+  } else if (!url && state.detectedUrl) {
+    clearUrl();
+  }
+}
+
+function clearUrl() {
+  state.detectedUrl = '';
+  state.enrichedContext = '';
+  state.isScanning = false;
+  clearTimeout(state.scanTimer);
+  document.getElementById('url-detected').classList.remove('on');
+  document.getElementById('url-scanning').classList.remove('on');
+  document.getElementById('enriched-box').classList.remove('on');
+  document.getElementById('persona-in').classList.remove('url-active');
+  document.getElementById('gen-btn').disabled = false;
+}
+
+async function scanUrl(url) {
+  if (state.isScanning) return;
+  state.isScanning = true;
+  var domain = url.replace(/^https?:\/\//,'').split('/')[0];
+  document.getElementById('url-scanning').classList.add('on');
+  document.getElementById('scan-txt').textContent = 'Scanning ' + domain + '…';
+  document.getElementById('gen-btn').disabled = true;
+  setStatus('scanning', 'scanning url');
+  document.getElementById('hint-txt').textContent = 'Scanning URL for prospect data…';
+
+  try {
+    var resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','anthropic-version':'2023-06-01','anthropic-beta':'web-search-2025-03-05'},
+      body: JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:600,
+        tools:[{type:'web_search_20250305',name:'web_search'}],
+        system:'You are a B2B prospect research assistant. Given a URL, use web search to extract: business name, industry, services offered, approximate team/location, opening hours, and any signals about phone handling or front-desk operations. Return ONLY a single plain-text paragraph (max 120 words). No markdown, no bullets, no headers — just flowing prose for a sales rep to read at a glance.',
+        messages:[{role:'user',content:'Research this prospect URL for a cold call: ' + url}]
+      })
+    });
+    var data = await resp.json();
+    var summary = '';
+    if (data.content) data.content.forEach(function(b){ if(b.type==='text') summary += b.text; });
+    summary = summary.trim();
+    if (summary && summary.length > 15) {
+      state.enrichedContext = summary;
+      document.getElementById('enriched-content').textContent = summary;
+      document.getElementById('enriched-box').classList.add('on');
+      document.getElementById('scan-txt').textContent = 'Scan complete ✓';
+      setTimeout(function(){ document.getElementById('url-scanning').classList.remove('on'); }, 1800);
+      setStatus('active', 'ready to call');
+      document.getElementById('hint-txt').textContent = 'URL scanned — hit Generate';
+    } else { throw new Error('empty'); }
+  } catch(e) {
+    document.getElementById('scan-txt').textContent = 'Scan failed — using URL only';
+    setTimeout(function(){ document.getElementById('url-scanning').classList.remove('on'); }, 2200);
+    setStatus('', 'standby');
+    document.getElementById('hint-txt').textContent = 'Add context or Generate anyway';
+  }
+  state.isScanning = false;
+  document.getElementById('gen-btn').disabled = false;
+}
+
+// ══════════════════════════════════════════════════
+// SCRIPT GENERATION
+// ══════════════════════════════════════════════════
+function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function getInitials(str) {
+  var pts = str.trim().split(/\s+/).filter(Boolean);
+  if (pts.length >= 2) return (pts[0][0]+pts[pts.length-1][0]).toUpperCase();
+  return str.slice(0,2).toUpperCase();
+}
+
+function extractName(raw) {
+  if (state.enrichedContext) {
+    var m = state.enrichedContext.match(/^([A-Z][a-zA-Z\s&'.\-]{2,45}?)(?:\s+is\b|\s+are\b|,|\.|$)/);
+    if (m) return m[1].trim();
+  }
+  var first = raw.split('\n')[0].trim().replace(/https?:\/\/\S+/g,'').trim();
+  var clean = first.replace(/[-–·|,].*/,'').trim();
+  return clean.length > 2 && clean.length < 60 ? clean : 'Prospect';
+}
+
+function extractCo(raw) {
+  if (state.enrichedContext) {
+    var m = state.enrichedContext.match(/^([A-Z][^\n.]{2,50})/);
+    if (m) return m[1].trim();
+  }
+  var lines = raw.split('\n');
+  for (var i = 1; i < lines.length; i++) {
+    var l = lines[i].trim();
+    if (l.length>2 && l.length<80 && !l.match(/linkedin|follower|https?/i)) return l;
+  }
+  return '';
+}
+
+function resetScript() {
+  document.getElementById('persona-in').value = '';
+  document.getElementById('script-output').innerHTML = emptyScriptState();
+  clearUrl();
+  state.storedScript = '';
+  document.getElementById('hint-txt').textContent = 'Paste info or URL above';
+  setStatus('','standby');
+  document.getElementById('persona-in').focus();
+}
+
+function emptyScriptState() {
+  return '<div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></div><div class="empty-t">No script loaded</div><div class="empty-s">Paste prospect details above and hit Generate</div></div>';
+}
+
+function renderScript(text, raw) {
+  state.storedScript = text;
+  var name = extractName(raw);
+  var co = extractCo(raw);
+  var init = getInitials(name !== 'Prospect' ? name : (state.enrichedContext||raw).slice(0,20));
+
+  var secs = [
+    {key:'TRIGGER OPENING',      label:'Trigger Opening',  cls:'amber'},
+    {key:'TOP 3 CHALLENGES WITHOUT AN AI RECEPTIONIST', label:'Top 3 Challenges', cls:'red'},
+    {key:'DISCOVERY QUESTIONS',  label:'Discovery Questions', cls:'blue'},
+    {key:'SOFT CLOSE',           label:'Soft Close',       cls:'green'}
+  ];
+
+  var pos = secs.map(function(s){ return Object.assign({},s,{idx:text.indexOf(s.key)}); })
+               .filter(function(s){ return s.idx>=0; })
+               .sort(function(a,b){ return a.idx-b.idx; });
+
+  var html = '<div class="card">';
+  html += '<div class="prospect-bar">';
+  html += '<div class="avatar">' + esc(init) + '</div>';
+  html += '<div><div class="p-name">' + esc(name) + '</div>';
+  if (co) html += '<div class="p-co">' + esc(co) + '</div>';
+  html += '</div>';
+  html += '<div style="margin-left:auto;display:flex;gap:6px;">';
+  html += '<button class="btn-copy" onclick="copyTxt(state.storedScript,this)">Copy all</button>';
+  html += '<button class="btn btn-amber" style="font-size:11px;padding:4px 12px;" onclick="logCall(\'' + esc(name) + '\')">Log call</button>';
+  html += '</div></div>';
+  html += '<div class="script-sections" style="padding:12px;">';
+
+  if (pos.length >= 2) {
+    pos.forEach(function(p, i) {
+      var start = p.idx + p.key.length;
+      var end = i+1 < pos.length ? pos[i+1].idx : text.length;
+      var content = text.slice(start, end).trim();
+      html += '<div class="ss-card">';
+      html += '<div class="ss-head">';
+      html += '<span class="ss-label ' + p.cls + '"><span class="sdot"></span>' + p.label + '</span>';
+      html += '<button class="btn-copy" onclick="copyTxt(' + JSON.stringify(content) + ',this)">copy</button>';
+      html += '</div>';
+      html += '<div class="ss-body">' + esc(content) + '</div>';
+      html += '</div>';
+    });
+  } else {
+    html += '<div class="stream-out">' + esc(text) + '</div>';
+  }
+  html += '</div></div>';
+  document.getElementById('script-output').innerHTML = html;
+  setStatus('active','ready to call');
+  document.getElementById('hint-txt').textContent = 'Script ready — clear for next call';
+}
+
+async function generate() {
+  var raw = document.getElementById('persona-in').value.trim();
+  if (!raw) { document.getElementById('persona-in').focus(); return; }
+
+  var ctx = raw;
+  if (state.enrichedContext) {
+    var notes = raw.replace(/https?:\/\/\S+/g,'').trim();
+    ctx = (notes ? 'Rep notes: ' + notes + '\n\n' : '') + 'URL research: ' + state.enrichedContext;
+  }
+
+  var product = (document.getElementById('product-ctx').value || state.settings.product).trim();
+  var tone = document.getElementById('tone-select').value;
+  var toneDesc = tone === 'direct' ? 'Direct and confident. No fluff.' : tone === 'warm' ? 'Warm and empathetic, relationship-led.' : 'Conversational UK/European B2B tone.';
+
+  state.storedScript = '';
+  setStatus('active','generating...');
+  document.getElementById('hint-txt').textContent = 'Writing your script...';
+  document.getElementById('script-output').innerHTML = '<div class="card"><div class="card-body"><div class="stream-out" id="stream-block"><span class="pulse"><span class="pd"></span><span class="pd"></span><span class="pd"></span></span></div></div></div>';
+
+  var SYSTEM = 'You are a cold call script writer for ' + product + '\n\nGenerate a cold call script in this EXACT format — no markdown, no asterisks, no bold:\n\nTRIGGER OPENING\n[1-2 conversational lines. Natural, not salesy. Reference an operational observation or that you tried to call.]\n\nTOP 3 CHALLENGES WITHOUT AN AI RECEPTIONIST\n1. [Concise one-liner challenge]\n2. [Concise one-liner challenge]\n3. [Concise one-liner challenge]\n\nDISCOVERY QUESTIONS\n- [Question 1]\n- [Question 2]\n- [Question 3]\n- [Question 4]\n- [Question 5]\n\nSOFT CLOSE\n[One natural, low-pressure meeting ask]\n\nTone: ' + toneDesc + ' Written for spoken delivery. Challenges = phone handling, missed calls, front-desk ops. Discovery questions validate pain, sound curious not interrogative. Soft close = consultative, non-pushy. No buzzwords. If URL research is provided, use it to personalise every section specifically.';
+
+  try {
+    var resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','anthropic-version':'2023-06-01'},
+      body: JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:1000,
+        stream:true,
+        system:SYSTEM,
+        messages:[{role:'user',content:'Business/persona: ' + ctx}]
+      })
+    });
+
+    var reader = resp.body.getReader();
+    var dec = new TextDecoder();
+    var full = '';
+    document.getElementById('stream-block').innerHTML = '';
+
+    while (true) {
+      var res = await reader.read();
+      if (res.done) break;
+      var lines = dec.decode(res.value).split('\n');
+      for (var i = 0; i < lines.length; i++) {
+        if (!lines[i].startsWith('data:')) continue;
+        var d = lines[i].slice(5).trim();
+        if (d==='[DONE]') break;
+        try {
+          var p = JSON.parse(d);
+          if (p.type==='content_block_delta' && p.delta && p.delta.text) {
+            full += p.delta.text;
+            document.getElementById('stream-block').textContent = full;
+          }
+        } catch(e){}
+      }
+    }
+    renderScript(full, raw);
+  } catch(e) {
+    document.getElementById('script-output').innerHTML = '<div class="card"><div class="card-body"><div class="stream-out" style="color:var(--r)">Error generating — check connection and try again.</div></div></div>';
+    setStatus('','standby');
+  }
+}
+
+// ══════════════════════════════════════════════════
+// OBJECTION ENGINE
+// ══════════════════════════════════════════════════
+function fireQuick(obj) {
+  document.getElementById('obj-input').value = obj;
+  showPanel('objections');
+  handleObjection();
+}
+
+function clearObjection() {
+  document.getElementById('obj-input').value = '';
+  document.getElementById('obj-output').innerHTML = emptyObjState();
+  document.getElementById('obj-hint').textContent = 'Enter the objection above';
+}
+
+function emptyObjState() {
+  return '<div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></div><div class="empty-t">No objection loaded</div><div class="empty-s">Type an objection and hit Fire Response</div></div>';
+}
+
+async function handleObjection() {
+  var obj = document.getElementById('obj-input').value.trim();
+  if (!obj) { document.getElementById('obj-input').focus(); return; }
+
+  var product = (document.getElementById('product-ctx').value || state.settings.product).trim();
+  var scriptCtx = state.storedScript ? '\n\nCurrent call script context:\n' + state.storedScript.slice(0,400) : '';
+
+  document.getElementById('obj-btn').disabled = true;
+  document.getElementById('obj-hint').textContent = 'Generating rebuttal...';
+  setStatus('active','handling objection');
+  document.getElementById('obj-output').innerHTML = '<div class="card"><div class="card-body"><div class="stream-out"><span class="pulse"><span class="pd"></span><span class="pd"></span><span class="pd"></span></span></div></div></div>';
+
+  var SYSTEM = 'You are an expert cold call coach for ' + product + scriptCtx + '\n\nWhen given a sales objection, respond in this EXACT format — no markdown, no asterisks:\n\nREBUTTAL\n[1-2 confident, natural sentences acknowledging the objection and pivoting. Not defensive. Spoken delivery.]\n\nCLARIFYING QUESTION\n[One short question to regain control and understand their situation better. Curious, not pushy.]\n\nVALUE PROPOSITION\n[One punchy sentence tailored to this objection that connects specifically to AI receptionist / Reception 24 value.]\n\nRules: UK/European B2B conversational tone. No corporate buzzwords. Concise. Written to be spoken aloud on a live call. Acknowledge the objection genuinely before responding.';
+
+  try {
+    var resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','anthropic-version':'2023-06-01'},
+      body: JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:600,
+        stream:true,
+        system:SYSTEM,
+        messages:[{role:'user',content:'Objection: ' + obj}]
+      })
+    });
+
+    var reader = resp.body.getReader();
+    var dec = new TextDecoder();
+    var full = '';
+    var el = document.querySelector('#obj-output .stream-out');
+    el.innerHTML = '';
+
+    while (true) {
+      var res = await reader.read();
+      if (res.done) break;
+      var lines = dec.decode(res.value).split('\n');
+      for (var i = 0; i < lines.length; i++) {
+        if (!lines[i].startsWith('data:')) continue;
+        var d = lines[i].slice(5).trim();
+        if (d==='[DONE]') break;
+        try {
+          var p = JSON.parse(d);
+          if (p.type==='content_block_delta' && p.delta && p.delta.text) {
+            full += p.delta.text;
+            el.textContent = full;
+          }
+        } catch(e){}
+      }
+    }
+    renderObjection(full, obj);
+  } catch(e) {
+    document.getElementById('obj-output').innerHTML = '<div class="card"><div class="card-body"><div class="stream-out" style="color:var(--r)">Error — check connection and try again.</div></div></div>';
+  }
+  document.getElementById('obj-btn').disabled = false;
+  setStatus('active','ready to call');
+  document.getElementById('obj-hint').textContent = 'Response ready — try another';
+}
+
+function renderObjection(text, objection) {
+  var secs = [
+    {key:'REBUTTAL',              label:'Rebuttal',              cls:'green'},
+    {key:'CLARIFYING QUESTION',   label:'Clarifying Question',   cls:'blue'},
+    {key:'VALUE PROPOSITION',     label:'Value Proposition',     cls:'amber'}
+  ];
+
+  var pos = secs.map(function(s){ return Object.assign({},s,{idx:text.indexOf(s.key)}); })
+               .filter(function(s){ return s.idx>=0; })
+               .sort(function(a,b){ return a.idx-b.idx; });
+
+  var html = '<div class="card">';
+  html += '<div class="card-head"><span class="card-label red"><span class="tag-dot"></span>Response to: <em style="color:var(--text2);font-style:normal;margin-left:4px;">' + esc(objection) + '</em></span>';
+  html += '<button class="btn-copy" onclick="copyTxt(' + JSON.stringify(text) + ',this)">Copy all</button></div>';
+  html += '<div style="padding:12px;display:flex;flex-direction:column;gap:10px;">';
+
+  if (pos.length >= 2) {
+    pos.forEach(function(p, i) {
+      var start = p.idx + p.key.length;
+      var end = i+1 < pos.length ? pos[i+1].idx : text.length;
+      var content = text.slice(start, end).trim();
+      html += '<div class="obj-cell">';
+      html += '<div class="obj-cell-head ' + p.cls + '"><span class="cdot"></span>' + p.label + '</div>';
+      html += '<p>' + esc(content) + '</p>';
+      html += '<button class="btn-copy" style="margin-top:7px;" onclick="copyTxt(' + JSON.stringify(content) + ',this)">copy</button>';
+      html += '</div>';
+    });
+  } else {
+    html += '<div class="obj-cell"><p>' + esc(text) + '</p></div>';
+  }
+
+  html += '</div></div>';
+  document.getElementById('obj-output').innerHTML = html;
+}
+
+// ══════════════════════════════════════════════════
+// CALL LOG
+// ══════════════════════════════════════════════════
+function logCall(name) {
+  var d = new Date();
+  var time = d.getHours().toString().padStart(2,'0') + ':' + d.getMinutes().toString().padStart(2,'0');
+  state.callLog.unshift({ name: name || 'Prospect', time: time, date: d.toLocaleDateString('en-GB'), outcome: null });
+  renderLog();
+  showPanel('log');
+}
+
+function setOutcome(idx, outcome) {
+  state.callLog[idx].outcome = outcome;
+  document.getElementById('log-count').textContent = state.callLog.length;
+  renderLog();
+}
+
+function clearLog() {
+  state.callLog = [];
+  document.getElementById('log-count').textContent = '0';
+  renderLog();
+}
+
+function renderLog() {
+  document.getElementById('log-count').textContent = state.callLog.length;
+  if (!state.callLog.length) {
+    document.getElementById('log-body').innerHTML = '<div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></div><div class="empty-t">No calls logged yet</div><div class="empty-s">Hit "Log call" after generating a script</div></div>';
+    return;
+  }
+  var html = '<table class="log-table"><thead><tr><th>Prospect</th><th>Time</th><th>Outcome</th><th>Actions</th></tr></thead><tbody>';
+  state.callLog.forEach(function(c, i) {
+    var outcomeHtml = '';
+    if (c.outcome === 'booked') outcomeHtml = '<span class="log-outcome outcome-booked">Booked</span>';
+    else if (c.outcome === 'followup') outcomeHtml = '<span class="log-outcome outcome-followup">Follow-up</span>';
+    else if (c.outcome === 'no') outcomeHtml = '<span class="log-outcome outcome-no">No</span>';
+    else outcomeHtml = '<span style="color:var(--text3);font-size:11px;">—</span>';
+    html += '<tr>';
+    html += '<td style="color:var(--text);font-weight:500;">' + esc(c.name) + '<br><span style="color:var(--text3);font-size:10px;">' + c.date + '</span></td>';
+    html += '<td style="font-family:var(--mono);">' + c.time + '</td>';
+    html += '<td>' + outcomeHtml + '</td>';
+    html += '<td style="display:flex;gap:5px;flex-wrap:wrap;">';
+    html += '<button class="btn-copy" onclick="setOutcome(' + i + ',\'booked\')" style="color:var(--g);">Booked</button>';
+    html += '<button class="btn-copy" onclick="setOutcome(' + i + ',\'followup\')" style="color:var(--b);">Follow-up</button>';
+    html += '<button class="btn-copy" onclick="setOutcome(' + i + ',\'no\')" style="color:var(--r);">No</button>';
+    html += '</td></tr>';
+  });
+  html += '</tbody></table>';
+  document.getElementById('log-body').innerHTML = html;
+}
+
+// ══════════════════════════════════════════════════
+// SETTINGS
+// ══════════════════════════════════════════════════
+function saveSettings() {
+  state.settings.product = document.getElementById('product-ctx').value || state.settings.product;
+  state.settings.caller = document.getElementById('caller-name').value;
+  state.settings.tone = document.getElementById('tone-select').value;
+  var h = document.getElementById('settings-hint');
+  h.textContent = 'Saved ✓';
+  setTimeout(function(){ h.textContent = 'Settings saved per session'; }, 1800);
+}
+
+// ══════════════════════════════════════════════════
+// COPY
+// ══════════════════════════════════════════════════
+function copyTxt(txt, btn) {
+  navigator.clipboard.writeText(txt).then(function() {
+    var orig = btn.textContent;
+    btn.textContent = 'copied ✓';
+    setTimeout(function(){ btn.textContent = orig; }, 1400);
+  });
+}
+
+
+// ══════════════════════════════════════════════════
+// API KEY MANAGEMENT — disabled, no key needed
+// ══════════════════════════════════════════════════
+var _apiKey = '';
+function getApiKey() { return ''; }
+function showApiModal() {}
+function toggleKeyVis() {}
+function saveApiKey() {}
+
+// ══════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════
+document.getElementById('product-ctx').value = state.settings.product;
+setStatus('active','ready to call');
+</script>
+
+
+
+</body>
+</html>

@@ -604,7 +604,7 @@ async function scanUrl(url) {
   document.getElementById('hint-txt').textContent = 'Scanning URL for prospect data…';
 
   try {
-    var resp = await fetch('https://api.anthropic.com/v1/messages', {
+    var resp = await fetch('https://corsproxy.io/?https://api.anthropic.com/v1/messages', {
       method:'POST',
       headers:{'Content-Type':'application/json','anthropic-version':'2023-06-01','anthropic-beta':'web-search-2025-03-05'},
       body: JSON.stringify({
@@ -759,13 +759,13 @@ async function generate() {
   var SYSTEM = 'You are a cold call script writer for ' + product + '\n\nGenerate a cold call script in this EXACT format — no markdown, no asterisks, no bold:\n\nTRIGGER OPENING\n[1-2 conversational lines. Natural, not salesy. Reference an operational observation or that you tried to call.]\n\nTOP 3 CHALLENGES WITHOUT AN AI RECEPTIONIST\n1. [Concise one-liner challenge]\n2. [Concise one-liner challenge]\n3. [Concise one-liner challenge]\n\nDISCOVERY QUESTIONS\n- [Question 1]\n- [Question 2]\n- [Question 3]\n- [Question 4]\n- [Question 5]\n\nSOFT CLOSE\n[One natural, low-pressure meeting ask]\n\nTone: ' + toneDesc + ' Written for spoken delivery. Challenges = phone handling, missed calls, front-desk ops. Discovery questions validate pain, sound curious not interrogative. Soft close = consultative, non-pushy. No buzzwords. If URL research is provided, use it to personalise every section specifically.';
 
   try {
-    var resp = await fetch('https://api.anthropic.com/v1/messages', {
+    var resp = await fetch('https://corsproxy.io/?https://api.anthropic.com/v1/messages', {
       method:'POST',
       headers:{'Content-Type':'application/json','anthropic-version':'2023-06-01'},
       body: JSON.stringify({
         model:'claude-sonnet-4-20250514',
         max_tokens:1000,
-        stream:true,
+        stream:false,
         system:SYSTEM,
         messages:[{role:'user',content:'Business/persona: ' + ctx}]
       })
@@ -834,13 +834,13 @@ async function handleObjection() {
   var SYSTEM = 'You are an expert cold call coach for ' + product + scriptCtx + '\n\nWhen given a sales objection, respond in this EXACT format — no markdown, no asterisks:\n\nREBUTTAL\n[1-2 confident, natural sentences acknowledging the objection and pivoting. Not defensive. Spoken delivery.]\n\nCLARIFYING QUESTION\n[One short question to regain control and understand their situation better. Curious, not pushy.]\n\nVALUE PROPOSITION\n[One punchy sentence tailored to this objection that connects specifically to AI receptionist / Reception 24 value.]\n\nRules: UK/European B2B conversational tone. No corporate buzzwords. Concise. Written to be spoken aloud on a live call. Acknowledge the objection genuinely before responding.';
 
   try {
-    var resp = await fetch('https://api.anthropic.com/v1/messages', {
+    var resp = await fetch('https://corsproxy.io/?https://api.anthropic.com/v1/messages', {
       method:'POST',
       headers:{'Content-Type':'application/json','anthropic-version':'2023-06-01'},
       body: JSON.stringify({
         model:'claude-sonnet-4-20250514',
         max_tokens:600,
-        stream:true,
+        stream:false,
         system:SYSTEM,
         messages:[{role:'user',content:'Objection: ' + obj}]
       })
